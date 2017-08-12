@@ -1,0 +1,60 @@
+The program was built and tested on
+	macOS Sierra Version 10.12.4.
+
+
+Language used to develop the program was
+	Python 3
+
+
+The assignment is all completed (hopefully)
+
+
+Basic Design:
+
+	Client part:
+		1. create TCP socket with given host and port
+
+		2. get the command character
+			2.1. if the command character is "F", then append 8 '\0' to the command and send it to the server
+
+			2.2. if the command character is "G"
+				2.2.1. if the length of command and key is smaller than 8, then append '\0'
+				2.2.2. send the command and key to the server
+				2.2.3. create file and write in the file
+
+			2.3. if the command character is "P"
+				2.3.1. if the length of command and key is smaller than 8, then append '\0'
+				2.3.2. send the command and key to the server
+				2.3.3. open file or create virtual file
+				2.3.4. read file and send the data to the server
+
+	Server part:
+
+		1. create TCP server and print port number to the "port" file
+
+		2. create two dictionaries to store the upload/download key and the list of sockets to the key
+
+		3. create a TCP handler to receive requests from clients
+			3.1. if the command is "F" (i.e. termination request)
+				3.1.1. set termination flag to true to tell all unpaired clients to stop waiting
+				3.1.2. wait until all ongoing transmitting pairs finish
+				3.1.3. release all unpaired waiting clients
+				3.1.4. terminate server, then terminate the program
+
+			3.2. if the command is "G" (i.e. downloading request)
+				3.2.1. add the key and socket to the download dictionary
+				3.2.2. check if the key exists in the upload dictionary
+					A. if it doesn't exist, wait for notification from uploading clients or termination request
+						a. if it is notified by the uploading clients, check again for the existence of the key in the upload dictionary. If successfully paired, transmit data between the pair, then close the socket
+						b. if it is notified by the termination request (i.e. the termination flag is true), then just return
+					B. if it exists, notify all waiting uploading clients
+
+			3.3. if the command is "P" (i.e. uploading request)
+				3.3.1. add the key and socke to the upload dictionary
+				3.3.2. check if the key exists in the download dictionary
+					A. if it doesn't exist, wait for notification from downloading clients or termination request
+						a. if it is notified by the downloading clients, check again for the existence of the key in the download dictionary. If successfully paired, transmit data between the pair, then close the socket
+						b. if its is notified by the termination request (i.e. the termination flag is true), then just return
+					B. if it exists, notify all waiting downloading clients
+
+		4. keep unpaired socket alive until server receives the termination request
